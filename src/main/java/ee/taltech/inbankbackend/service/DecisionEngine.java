@@ -2,10 +2,7 @@ package ee.taltech.inbankbackend.service;
 
 import com.github.vladislavgoltjajev.personalcode.locale.estonia.EstonianPersonalCodeValidator;
 import ee.taltech.inbankbackend.config.DecisionEngineConstants;
-import ee.taltech.inbankbackend.exceptions.InvalidLoanAmountException;
-import ee.taltech.inbankbackend.exceptions.InvalidLoanPeriodException;
-import ee.taltech.inbankbackend.exceptions.InvalidPersonalCodeException;
-import ee.taltech.inbankbackend.exceptions.NoValidLoanException;
+import ee.taltech.inbankbackend.exceptions.*;
 import org.springframework.stereotype.Service;
 
 /**
@@ -37,8 +34,17 @@ public class DecisionEngine {
      */
     public Decision calculateApprovedLoan(String personalCode, Long loanAmount, int loanPeriod)
             throws InvalidPersonalCodeException, InvalidLoanAmountException, InvalidLoanPeriodException,
-            NoValidLoanException {
+            NoValidLoanException, InvalidAgeException {
+
         verifyInputs(personalCode, loanAmount, loanPeriod);
+
+        int age = AgeUtil.calculateAgeFromPersonalCode(personalCode);
+        String countryCode = personalCode.substring(0, 2);
+        int ageLimit = CountryAgeLimit.getAgeLimit(countryCode);
+
+        if (age < 18 || age > ageLimit) {
+            throw new InvalidAgeException("Customer age " + age + " is outside of the approved range.");
+        }
 
         creditModifier = getCreditModifier(personalCode);
         if (creditModifier == 0) {
